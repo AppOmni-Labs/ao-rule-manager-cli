@@ -13,7 +13,7 @@ In order to use this CLI tool, you need to ensure that you have the following de
 ```bash 
 chmod +x ao_rule_manager.sh
 ```
-4. Optionally you can add the following alias to your `.bashrc` or `.zshrc` file to make it easier to run the script from anywhere:
+3. Optionally you can add the following alias to your `.bashrc` or `.zshrc` file to make it easier to run the script from anywhere:
 ```bash
 alias ao-rule-manager="<path-to-repo>/ao_rule_manager.sh"
 or
@@ -24,7 +24,7 @@ source ~/.bashrc
 or
 source ~/.zshrc
 ```
-5. Set local environment variables for the AppOmni API Key and Tenant ID:
+4. Set local environment variables for the AppOmni API Key and Tenant ID:
 ```bash
 export AO_TOKEN = "<API_KEY>"
 export TENANT = "<subdomain name>" eg "acme" for "acme.appomni.com"
