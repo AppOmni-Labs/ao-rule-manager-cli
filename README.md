@@ -16,6 +16,10 @@ chmod +x ao_rule_manager.sh
 4. Optionally you can add the following alias to your `.bashrc` or `.zshrc` file to make it easier to run the script from anywhere:
 ```bash
 alias ao-rule-manager="<path-to-repo>/tools/ao-rule-manager/ao_rule_manager.sh"
+or
+mv ao_rule_manager.sh /usr/local/bin/ao-rule-manager
+```
+```bash
 source ~/.bashrc
 or
 source ~/.zshrc
