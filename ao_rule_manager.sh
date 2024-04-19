@@ -152,13 +152,13 @@ fi
 # Create template
 create_template() {
     local response="$1"
+    # Convert all letters to lowercase
+    rule_name=$(jq -r '.logic.name' <<< "$response")
+    filename=$(echo "${rule_name// /_}_template.json" | tr '[:upper:]' '[:lower:]')
     # delete keys that cause problems id, ruleset_name - this avoids issues with using AO managed rulesets
     response=$(jq 'del(.id, .ruleset_name, .name)' <<< "$response")
     # clear out the ruleset_id value and make empty string
     response=$(jq '.ruleset_id = ""' <<< "$response")
-    rule_name=$(jq -r '.name' <<< "$response")
-    # Convert all letters to lowercase
-    filename=$(echo "${rule_name// /_}_template.json" | tr '[:upper:]' '[:lower:]')
     mkdir -p "./rules"
     # create a trigger doc with _trigger appended to the filename
     trigger_filename="${filename%.*}_trigger.md"
