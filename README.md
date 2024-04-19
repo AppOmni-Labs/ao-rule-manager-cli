@@ -29,6 +29,7 @@ source ~/.zshrc
 export AO_TOKEN = "<API_KEY>"
 export TENANT = "<subdomain name>" eg "acme" for "acme.appomni.com"
 ```
+The API Key can be found in the AppOmni platform under `Settings > API Settings > Add or Edit Existing Application`.  Set a new token description and expiration date and click `Submit`. Copy the value of the `Access token` and export as your `AO_TOKEN` value.  
 
 
 ## Usage
@@ -46,6 +47,7 @@ Usage: ./ao_rule_manager.sh [-h|-c|-u|-g|-t] [-i <id>] [-f <filepath>]
 
 ### Working with Rules  
 #### Getting a Rule
+Note: The `id` is the unique identifier for each rule and can be located in the URL when viewing a rule in the browser. When you click on a rule it will be the UUID value in `panel=...`
 ```bash
 ao-rule-manager -g -i <id> | jq .`  #Pipe to jq for pretty printing
 ```
@@ -55,7 +57,10 @@ Each pre-existing rule belongs to a `ruleset_id` and has a unique `id`. In order
 ```bash
 ao-rule-manager -t -i <id>
 ```
-This will create a template for a new rule based on the rule with the specified `id`. In order to create a new rule based on the template the only requirement is to update the `ruleset_id` field to the `ruleset_id` of a custom `ruleset` that you have created. The id can be retrieved in the browser by navigating to the `Rules` tab and selecting the `ruleset` that you want to add the rule to. The `ruleset_id` will be in the URL.   
+This will create a template for a new rule based on the rule with the specified `id`. In order to create a new rule based on the template the only requirement is to update the `ruleset_id` field to the `ruleset_id` of a custom `ruleset` that you have created. The `rulset_id` can be retrieved in the browser by navigating to the `Rules` tab and selecting the `ruleset` that you want to add the rule to. The `ruleset_id` will be in the URL.   
 ```bash
 ao-rule-manager -c -f <path-to-json-file>
 ```
+
+#### Trigger and Triage Documentation
+When you create a template for a new rule, the CLI will also create two additional files, one for maintaining triage documentation and the other for maintaining trigger documentation using the same base name as the rule file.  These are generic markdown files ad can be used as such.  When numbering steps, set all numerical values to `1.` and the markdown generator will handle appropriate numbering. You *must* ensure that the trigger and triage document filenames are the same as the rule json file with `_trigger.md` or `_triage.md` appended to the filename.  For example, if you create a rule named `my_rule.json`, the trigger and triage documentation files must be named `my_rule_trigger.md` and `my_rule_triage.md` respectively. 

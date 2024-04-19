@@ -67,6 +67,26 @@ if [ -z "$method" ]; then
     usage
 fi
 
+# take the filepath arg and check if a corresponding _triage.md and _triage.md file exists
+# if not, set the triage and trigger object keys to empty strings
+# if they do exist, set the triage and trigger object keys to the contents of the files
+prepare_trigger_triage_docs(){
+    local filepath="$1"
+    local triage_filename="${filepath%.*}_triage.md"
+    local trigger_filename="${filepath%.*}_trigger.md"
+    if [ ! -f "$triage_filename" ]; then
+        triage_doc=""
+    else
+        triage_doc=$(cat "$triage_filename")
+    fi
+    if [ ! -f "$trigger_filename" ]; then
+        trigger_doc=""
+    else
+        trigger_doc=$(cat "$trigger_filename")
+    fi
+    jq --arg triage_doc "$triage_doc" --arg trigger_doc "$trigger_doc" '. + {triage_doc: $triage_doc, trigger_doc: $trigger_doc}' "$filepath"
+}
+
 
 # Construct URL based on method
 base_url="https://$TENANT.appomni.com/api/v1/detection/rule"
@@ -88,13 +108,17 @@ elif [ "$method" == "PATCH" ] || [ "$method" == "POST" ]; then
         echo "Error: Filepath is required for $action request"
         usage
     fi
+    json_data=$(prepare_trigger_triage_docs "$filepath")
 
-    json_data=$(cat "$filepath")
-    echo "$filepath"
     if [ "$method" == "PATCH" ]; then
+        enabled=$(echo "$json_data" | jq -r '.enabled')
         if ! jq -e 'has("id") and has("ruleset_id")' <<< "$json_data" >/dev/null; then
             echo "Error: 'id' and 'ruleset_id' keys must exist in the JSON payload for $action requests"
             exit 1
+        # check if "enabled" is true and if not set it - wierd issue with API
+        elif [ "$enabled" = "null" ]; then
+            # Set the enabled to true in json_data
+            json_data=$(jq '.enabled = true' <<< "$json_data")
         fi
         rid=$(jq -r '.id' <<< "$json_data")
     else
@@ -103,13 +127,12 @@ elif [ "$method" == "PATCH" ] || [ "$method" == "POST" ]; then
             exit 1
         fi
     fi
-
     url="$base_url/"
     if [ "$method" == "PATCH" ]; then
         url="$base_url/$rid/"
     fi
 fi
-
+######### - Post Response Activity - #########
 
 # Make curl request
 if [ "$method" == "GET" ]; then
@@ -125,17 +148,28 @@ else
         "$url")
 fi
 
+
 # Create template
 create_template() {
     local response="$1"
+    # Convert all letters to lowercase
+    rule_name=$(jq -r '.logic.name' <<< "$response")
+    filename=$(echo "${rule_name// /_}_template.json" | tr '[:upper:]' '[:lower:]')
     # delete keys that cause problems id, ruleset_name - this avoids issues with using AO managed rulesets
-    response=$(jq 'del(.id, .ruleset_name)' <<< "$response")
+    response=$(jq 'del(.id, .ruleset_name, .name)' <<< "$response")
     # clear out the ruleset_id value and make empty string
     response=$(jq '.ruleset_id = ""' <<< "$response")
-    rule_name=$(jq -r '.name' <<< "$response")
-    # Convert all letters to lowercase
-    filename=$(echo "${rule_name// /_}_template.json" | tr '[:upper:]' '[:lower:]')
-    mkdir -p "./rules" && echo "$response" | jq '.' > "./rules/$filename"
+    mkdir -p "./rules"
+    # create a trigger doc with _trigger appended to the filename
+    trigger_filename="${filename%.*}_trigger.md"
+    trigger_doc=$(echo "$response" | jq -r '.trigger_doc')
+    echo -e "$trigger_doc" > "./rules/$trigger_filename"
+    triage_filename="${filename%.*}_triage.md"
+    triage_doc=$(echo "$response" | jq -r '.triage_doc')
+    echo -e "$triage_doc" > "./rules/$triage_filename"
+    # Set the trigger_doc and triage_doc to empty strings and write the rule file
+    response=$(jq '.trigger_doc = "" | .triage_doc = ""' <<< "$response")
+    echo "$response" | jq '.' > "./rules/$filename"
     echo "Success: $filename created"
 }
 
@@ -162,6 +196,8 @@ fi
 
 # Update JSON file with response for POST and PATCH requests
 if [ "$method" == "POST" ] || [ "$method" == "PATCH" ]; then
+   # set trigger and triage keys to empty
+    response=$(jq '.trigger_doc = "" | .triage_doc = ""' <<< "$response")
     echo "$response" | jq '.' > "$filepath"
 fi
 
