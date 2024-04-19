@@ -29,6 +29,7 @@ source ~/.zshrc
 export AO_TOKEN = "<API_KEY>"
 export TENANT = "<subdomain name>" eg "acme" for "acme.appomni.com"
 ```
+The API Key can be found in the AppOmni platform under `Settings > API Settings > Add or Edit Existing Application`.  Set a new token description and expiration date and click `Submit`. Copy the value of the `Access token` and export as your `AO_TOKEN` value.  
 
 
 ## Usage
@@ -55,7 +56,7 @@ Each pre-existing rule belongs to a `ruleset_id` and has a unique `id`. In order
 ```bash
 ao-rule-manager -t -i <id>
 ```
-This will create a template for a new rule based on the rule with the specified `id`. In order to create a new rule based on the template the only requirement is to update the `ruleset_id` field to the `ruleset_id` of a custom `ruleset` that you have created. The id can be retrieved in the browser by navigating to the `Rules` tab and selecting the `ruleset` that you want to add the rule to. The `ruleset_id` will be in the URL.   
+This will create a template for a new rule based on the rule with the specified `id`. In order to create a new rule based on the template the only requirement is to update the `ruleset_id` field to the `ruleset_id` of a custom `ruleset` that you have created. The `rulset_id` can be retrieved in the browser by navigating to the `Rules` tab and selecting the `ruleset` that you want to add the rule to. The `ruleset_id` will be in the URL.   
 ```bash
 ao-rule-manager -c -f <path-to-json-file>
 ```
