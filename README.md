@@ -59,3 +59,6 @@ This will create a template for a new rule based on the rule with the specified 
 ```bash
 ao-rule-manager -c -f <path-to-json-file>
 ```
+
+#### Trigger and Triage Documentation
+When you create a template for a new rule, the CLI will also create two additional files, one for maintaining triage documentation and the other for maintaining trigger documentation using the same base name as the rule file.  These are generic markdown files ad can be used as such.  When numbering steps, set all numerical values to `1.` and the markdown generator will handle appropriate numbering. When you create or update your rules, this information will be automatically formatted and attached to the rule in the AppOmni platform.
