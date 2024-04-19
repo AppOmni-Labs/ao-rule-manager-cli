@@ -47,6 +47,7 @@ Usage: ./ao_rule_manager.sh [-h|-c|-u|-g|-t] [-i <id>] [-f <filepath>]
 
 ### Working with Rules  
 #### Getting a Rule
+Note: The `id` is the unique identifier for each rule and can be located in the URL when viewing a rule in the browser. When you click on a rule it will be the UUID value in `panel=...`
 ```bash
 ao-rule-manager -g -i <id> | jq .`  #Pipe to jq for pretty printing
 ```
