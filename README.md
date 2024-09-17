@@ -40,6 +40,7 @@ Usage: ./ao_rule_manager.sh [-h|-c|-u|-g|-t] [-i <id>] [-f <filepath>]
   -u: Update custom rule
   -g: Get rule by ID
   -t: Create template for new rule
+  -s: Sync all rules from tenant into folders"
   -i <id>: ID to fetch a rule or create a template based on this ID
   -f <filepath>: Path to JSON file (only required for Rule Creation and Updates)
 
