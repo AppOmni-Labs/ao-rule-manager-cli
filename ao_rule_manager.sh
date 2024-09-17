@@ -2,12 +2,13 @@
 
 # Usage information
 usage() {
-    echo "Usage: $0 [-h|-c|-u|-g|-t] [-i <id>] [-f <filepath>]"
+    echo "Usage: $0 [-h|-c|-u|-g|-t|-s] [-i <id>] [-f <filepath>]"
     echo "  -h: Display usage information"
     echo "  -c: Create custom rule"
     echo "  -u: Update custom rule"
     echo "  -g: Get rule by ID"
     echo "  -t: Create template for new rule"
+    echo "  -s: Sync all rules from tenant into folders"
     echo "  -i <id>: ID to fetch a rule or create a template based on this ID"
     echo "  -f <filepath>: Path to JSON file (only required for Rule Creation and Updates)"
     exit 1
@@ -20,14 +21,13 @@ if [ -z "$AO_TOKEN" ]; then
 fi
 
 # Check if TENANT environment variable is set
-# Check if TOKEN environment variable is set
 if [ -z "$TENANT" ]; then
     echo "Error: TENANT environment variable is not set"
     exit 1
 fi
 
 # Parse command-line options
-while getopts ":hcugtf:i:" opt; do
+while getopts ":hcugtsf:i:" opt; do
     case $opt in
         h)
             usage
@@ -43,6 +43,10 @@ while getopts ":hcugtf:i:" opt; do
             ;;
         t)
             template_flag=true
+            method="GET"
+            ;;
+        s)
+            sync_flag=true
             method="GET"
             ;;
         i)
@@ -62,7 +66,80 @@ while getopts ":hcugtf:i:" opt; do
     esac
 done
 
-# Check if method is provided
+# Function to prepare trigger and triage docs
+prepare_trigger_triage_docs(){
+    local filepath="$1"
+    local triage_filename="${filepath%.*}_triage.md"
+    local trigger_filename="${filepath%.*}_trigger.md"
+    if [ ! -f "$triage_filename" ]; then
+        triage_doc=""
+    else
+        triage_doc=$(cat "$triage_filename")
+    fi
+    if [ ! -f "$trigger_filename" ]; then
+        trigger_doc=""
+    else
+        trigger_doc=$(cat "$trigger_filename")
+    fi
+    jq --arg triage_doc "$triage_doc" --arg trigger_doc "$trigger_doc" '. + {triage_doc: $triage_doc, trigger_doc: $trigger_doc}' "$filepath"
+}
+
+# Sync all rules with pagination
+sync_all_rules() {
+    local url="https://$TENANT.appomni.com/api/v1/detection/rule/"
+    while [ -n "$url" ]; do
+        response=$(curl -s -X GET \
+            -H "Authorization: Bearer $AO_TOKEN" \
+            -H "Content-Type: application/json" \
+            "$url")
+
+        # Extract pagination and results
+        next_url=$(jq -r '.next' <<< "$response")
+        results=$(jq '.results' <<< "$response")
+
+        # Loop through all rules in the current page
+        rule_count=$(jq '. | length' <<< "$results")
+        if [ "$rule_count" -gt 0 ]; then
+            for ((i=0; i<rule_count; i++)); do
+                rule=$(jq ".[$i]" <<< "$results")
+                rule_name=$(jq -r '.logic.name' <<< "$rule" | tr '[:upper:]' '[:lower:]' | tr ' ' '_')
+                rule_dir="./rules/$rule_name"
+
+                # Create directory for the rule
+                mkdir -p "$rule_dir"
+
+                # Create trigger and triage docs
+                trigger_doc=$(jq -r '.trigger_doc' <<< "$rule")
+                triage_doc=$(jq -r '.triage_doc' <<< "$rule")
+                echo -e "$trigger_doc" > "$rule_dir/${rule_name}_trigger.md"
+                echo -e "$triage_doc" > "$rule_dir/${rule_name}_triage.md"
+
+                # Save rule JSON without trigger and triage docs
+                rule=$(jq '.trigger_doc = "" | .triage_doc = ""' <<< "$rule")
+                echo "$rule" | jq '.' > "$rule_dir/${rule_name}.json"
+
+                echo "Success: Rule $rule_name synced"
+            done
+        else
+            echo "No rules found for tenant."
+        fi
+
+        # Update the URL to the next page (or exit loop if none)
+        if [ "$next_url" == "null" ]; then
+            url=""
+        else
+            url="$next_url"
+        fi
+    done
+}
+
+# Sync all rules if -s flag is provided
+if [ "$sync_flag" == true ]; then
+    sync_all_rules
+    exit 0
+fi
+
+# Handle other method-based operations
 if [ -z "$method" ]; then
     usage
 fi
